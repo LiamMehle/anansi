@@ -12,17 +12,11 @@ enum EntryType {
     dir
 };
 typedef struct {
-    enum EntryType type;
-    char* path;
+    uint16_t path_offset;  // compressed pointer stored as offset into arena
+    uint8_t type;
 } Entry;
 
 void enumerate_fs_path(String base_path, Set* const files, StackArena* const arena) {
-    // old stupdi legacy code
-    // size_t const search_path_len = base_path_len+5;
-    // char* const search_path = stack_arena_alloc(arena, search_path_len, 1);
-    // memcpy(search_path, base_path, base_path_len);
-    // char* const search_path_end = search_path+base_path_len;
-    // strcpy(search_path_end, "\\*.*");
     String search_path = string_build_in_stack_arena(arena, (String[]){
         base_path,
         SIZED_STRING("\\*.*"),
@@ -36,28 +30,29 @@ void enumerate_fs_path(String base_path, Set* const files, StackArena* const are
         do {
             // read all (real) files in current folder
             // , delete '!' read other 2 default folder . and ..
-            if(! (fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) ) {
-                String path = string_build_in_stack_arena(arena, (String[]){
-                    base_path,
-                    SIZED_STRING("\\"),
-                    SIZED_STRING(fd.cFileName),
-                    { 0 }
-                });
+            if(fd.cFileName[0] == '.' && (fd.cFileName[1] == '\0' || fd.cFileName[1] == '.'))
+                continue;
 
-                Entry entry = {
-                    .path = path.str,
-                    .type = file
-                };
-                set_add(files, &entry);
-            }
+            String path = string_build_in_stack_arena(arena, (String[]){
+                base_path,
+                SIZED_STRING("\\"),
+                SIZED_STRING(fd.cFileName),
+                { 0 }
+            });
+
+            Entry entry = {
+                .path_offset = (size_t)path.str - (size_t)arena->data,
+                .type = fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY ? dir : file
+            };
+            set_add(files, &entry);
         }while(FindNextFile(directory_handle, &fd)); 
         FindClose(directory_handle); 
     } 
 }
 
 int main() {
-    Set entry_set = set_generate_malloc(1024, sizeof(Entry));
-    size_t const scratch_size = 1024*1024;
+    Set entry_set = set_generate_malloc(512, sizeof(Entry));
+    size_t const scratch_size = 1024;
     StackArena arena = stack_arena_generate(malloc(scratch_size), scratch_size);
     enumerate_fs_path(SIZED_STRING("."), &entry_set, &arena);
 
@@ -70,7 +65,7 @@ int main() {
     set_foreach(entry_set, i) {
         Entry* entry = set_at(&entry_set, i);
         if (entry)
-            puts(entry->path);
+            puts((char*)arena.data + entry->path_offset);
         else
             puts("<ERROR>");
     }
