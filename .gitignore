@@ -1,0 +1,7 @@
+Makefile
+compressor.exe
+CmakeCache.txt
+cmake_install.cmake
+CmakeFiles
+build
+.vscode
