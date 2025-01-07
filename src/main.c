@@ -51,9 +51,16 @@ void enumerate_fs_path(String base_path, Set* const files, StackArena* const are
 }
 
 int main() {
-    Set entry_set = set_generate_malloc(512, sizeof(Entry));
+    // configuration
     size_t const scratch_size = 1024;
-    StackArena arena = stack_arena_generate(malloc(scratch_size), scratch_size);
+
+    // our entire malloc allowance
+    void* true_dynamic_memory = malloc(scratch_size);
+
+    // arena setup to organize malloc use
+    StackArena arena = stack_arena_generate(true_dynamic_memory, scratch_size);
+    Set entry_set = set_generate(512, sizeof(Entry), &arena);
+
     enumerate_fs_path(SIZED_STRING("."), &entry_set, &arena);
 
     size_t const entry_set_consumed_memory = entry_set.count*(entry_set.arena.object_size+sizeof(void*));

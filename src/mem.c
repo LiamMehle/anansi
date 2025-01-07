@@ -129,7 +129,15 @@ typedef struct {
     count_t count;
 } Set;
 
-// todo: fix allocation
+static inline
+Set set_generate(size_t const capacity, size_t const object_size, StackArena* const arena) {
+    Set set = {0};
+    set.ptrs = stack_arena_alloc(arena, capacity*sizeof(void*), sizeof(void*));
+    set.arena = object_arena_generate_malloc(object_size, capacity);
+    set.capacity = capacity;
+    return set;
+}
+
 static inline
 Set set_generate_malloc(size_t const capacity, size_t const object_size) {
     Set set = {0};
