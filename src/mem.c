@@ -129,6 +129,11 @@ typedef struct {
     count_t count;
 } Set;
 
+/**
+ * consumes n*(8+m) bytes of memory minimum, n*(9+m) max
+ * n .. capacity
+ * m .. object_size
+ */
 static inline
 Set set_generate(size_t const capacity, size_t const object_size, StackArena* const arena) {
     Set set = {0};
