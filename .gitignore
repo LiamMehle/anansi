@@ -5,3 +5,4 @@ cmake_install.cmake
 CmakeFiles
 build
 .vscode
+_deps
