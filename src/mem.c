@@ -143,11 +143,10 @@ typedef struct {
  * m .. object_size
  */
 static inline
-Set set_generate(size_t const capacity, size_t const object_size, StackArena* const arena) {
+Set set_generate(size_t const object_size, size_t const capacity, StackArena* const arena) {
     Set set = {0};
     set.ptrs = stack_arena_alloc(arena, capacity*sizeof(void*), sizeof(void*));
     set.arena = object_arena_generate(object_size, capacity, arena);
-    set.arena.capacity = capacity;
     return set;
 }
 
@@ -164,8 +163,12 @@ static inline
 int set_add(Set* const set, void const* const object) {
     if (set->arena.count >= set->arena.capacity)
         return -1;
+
+    // I introduced a memory bug here before
+    // lesson: everything inside of set->arena is managed by object_arena_* functions
+    // no touchy
     void* const new_storage = object_arena_alloc(&set->arena);
-    set->ptrs[set->arena.count++] = new_storage;
+    set->ptrs[set->arena.count-1] = new_storage;  // assign to last entry
     memcpy(new_storage, object, set->arena.object_size);
     return 0;
 }
@@ -175,11 +178,11 @@ void set_remove(Set* const set, size_t const i) {
     if (i <= set->arena.capacity)
         return;
     void const* const removed_element = set->ptrs[i];
-    set->ptrs[i] = set->ptrs[--set->arena.count];
+    set->ptrs[i] = set->ptrs[set->arena.count-1];
     object_arena_free(&set->arena, removed_element);
 }
 
-void* set_at(Set* const set, size_t const i) {
+void* set_at(Set const* const set, size_t const i) {
     if (i >= set->arena.capacity)
         return NULL;
     return set->ptrs[i];
@@ -190,4 +193,4 @@ void set_empty(Set* const set) {
     set->arena.count = 0;
 }
 
-#define set_foreach(set, i) for(size_t i=0; i<(set).count; i++)
+#define set_foreach(set, i) for(size_t i=0; i<(set).arena.count; i++)
