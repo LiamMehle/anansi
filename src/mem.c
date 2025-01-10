@@ -135,8 +135,6 @@ void object_arena_empty(ObjectArena* const arena) {
 typedef struct {
     ObjectArena arena;
     void**   ptrs;
-    count_t capacity;
-    count_t count;
 } Set;
 
 /**
@@ -148,8 +146,8 @@ static inline
 Set set_generate(size_t const capacity, size_t const object_size, StackArena* const arena) {
     Set set = {0};
     set.ptrs = stack_arena_alloc(arena, capacity*sizeof(void*), sizeof(void*));
-    set.arena = object_arena_generate_malloc(object_size, capacity);
-    set.capacity = capacity;
+    set.arena = object_arena_generate(object_size, capacity, arena);
+    set.arena.capacity = capacity;
     return set;
 }
 
@@ -158,38 +156,38 @@ Set set_generate_malloc(size_t const capacity, size_t const object_size) {
     Set set = {0};
     set.ptrs = malloc(capacity*sizeof(void*));
     set.arena = object_arena_generate_malloc(object_size, capacity);
-    set.capacity = capacity;
+    set.arena.capacity = capacity;
     return set;
 }
 
 static inline
 int set_add(Set* const set, void const* const object) {
-    if (set->count >= set->capacity)
+    if (set->arena.count >= set->arena.capacity)
         return -1;
     void* const new_storage = object_arena_alloc(&set->arena);
-    set->ptrs[set->count++] = new_storage;
+    set->ptrs[set->arena.count++] = new_storage;
     memcpy(new_storage, object, set->arena.object_size);
     return 0;
 }
 
 static inline
 void set_remove(Set* const set, size_t const i) {
-    if (i <= set->capacity)
+    if (i <= set->arena.capacity)
         return;
     void const* const removed_element = set->ptrs[i];
-    set->ptrs[i] = set->ptrs[--set->count];
+    set->ptrs[i] = set->ptrs[--set->arena.count];
     object_arena_free(&set->arena, removed_element);
 }
 
 void* set_at(Set* const set, size_t const i) {
-    if (i >= set->capacity)
+    if (i >= set->arena.capacity)
         return NULL;
     return set->ptrs[i];
 }
 
 void set_empty(Set* const set) {
     object_arena_empty(&set->arena);
-    set->count = 0;
+    set->arena.count = 0;
 }
 
 #define set_foreach(set, i) for(size_t i=0; i<(set).count; i++)
