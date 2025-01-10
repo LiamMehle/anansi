@@ -79,6 +79,16 @@ typedef struct {
  * if .data is 0, error occured.
  */
 static inline
+ObjectArena object_arena_generate(size_t const object_size, size_t const object_count, StackArena* const arena) {
+    ObjectArena output = {0};
+    output.capacity = object_count;
+    output.object_size = object_size;
+    output.free_list = stack_arena_alloc(arena, output.capacity*sizeof(count_t), sizeof(count_t));
+    output.data = stack_arena_alloc(arena, output.capacity*object_size, object_size);
+
+    return output;
+}
+static inline
 ObjectArena object_arena_generate_malloc(size_t const object_size, size_t const object_count) {
     ObjectArena arena = {0};
     arena.capacity = object_count;
