@@ -52,7 +52,7 @@ void enumerate_fs_path(String base_path, Set* const files, StackArena* const are
 
 int main() {
 	// configuration
-	size_t const malloc_Pize  = 2048;
+	size_t const malloc_size  = 2048;
 	size_t const scratch_size = malloc_size;
 	size_t const set_size     = 128;
 
@@ -71,6 +71,7 @@ int main() {
 		entry_set_consumed_memory+scratch_consumed_memory,
 		scratch_consumed_memory,
 		entry_set_consumed_memory);
+
 	set_foreach(entry_set, i) {
 		Entry* entry = set_at(&entry_set, i);
 		if (entry)
