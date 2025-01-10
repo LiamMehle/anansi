@@ -17,7 +17,7 @@ typedef struct {
 } Entry;
 
 Set enumerate_fs_path(String base_path, StackArena* const master_arena) {
-	size_t const max_expected_entry_count = 32;
+	size_t const max_expected_entry_count = 512;
 	Set entries = set_generate(sizeof(Entry), max_expected_entry_count, master_arena);
 
 	String search_path = string_build_in_stack_arena(master_arena, (String[]){
@@ -74,7 +74,7 @@ int main() {
 	size_t const entry_set_consumed_memory = entry_set.arena.count*(entry_set.arena.object_size+sizeof(*entry_set.offsets));
 	size_t const scratch_consumed_memory = arena.used;
 	printf("entry count: %u\n", entry_set.arena.count);
-	printf("\nused %zu bytes -- %zu scratch, %zu set\n",
+	printf("\nused %zu bytes -- %zu scratch of which %zu set\n",
 		entry_set_consumed_memory+scratch_consumed_memory,
 		scratch_consumed_memory,
 		entry_set_consumed_memory);
