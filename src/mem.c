@@ -134,7 +134,7 @@ void object_arena_empty(ObjectArena* const arena) {
 // automatically growing unordered collection 
 typedef struct {
     ObjectArena arena;
-    void**   ptrs;
+    count_t*    offsets;       // contigous `arena.count`-length array of integers to entries in (T[])arena.data
 } Set;
 
 /**
@@ -144,18 +144,9 @@ typedef struct {
  */
 static inline
 Set set_generate(size_t const object_size, size_t const capacity, StackArena* const arena) {
-    Set set = {0};
-    set.ptrs = stack_arena_alloc(arena, capacity*sizeof(void*), sizeof(void*));
+    Set set = { 0 };
+    set.offsets = stack_arena_alloc(arena, capacity*sizeof(*set.offsets), sizeof(*set.offsets));
     set.arena = object_arena_generate(object_size, capacity, arena);
-    return set;
-}
-
-static inline
-Set set_generate_malloc(size_t const capacity, size_t const object_size) {
-    Set set = {0};
-    set.ptrs = malloc(capacity*sizeof(void*));
-    set.arena = object_arena_generate_malloc(object_size, capacity);
-    set.arena.capacity = capacity;
     return set;
 }
 
@@ -168,24 +159,24 @@ int set_add(Set* const set, void const* const object) {
     // lesson: everything inside of set->arena is managed by object_arena_* functions
     // no touchy
     void* const new_storage = object_arena_alloc(&set->arena);
-    set->ptrs[set->arena.count-1] = new_storage;  // assign to last entry
+    set->offsets[set->arena.count-1] = ((uint8_t*)new_storage - (uint8_t*)set->arena.data)/set->arena.object_size;  // assign to last entry
     memcpy(new_storage, object, set->arena.object_size);
     return 0;
+}
+
+void* set_at(Set const* const set, size_t const i) {
+    if (i >= set->arena.capacity)
+        return NULL;
+    return ((char*)set->arena.data) + (set->offsets[i]*set->arena.object_size);
 }
 
 static inline
 void set_remove(Set* const set, size_t const i) {
     if (i <= set->arena.capacity)
         return;
-    void const* const removed_element = set->ptrs[i];
-    set->ptrs[i] = set->ptrs[set->arena.count-1];
+    void const* const removed_element = set_at(set, i);
+    set->offsets[i] = set->offsets[set->arena.count-1];
     object_arena_free(&set->arena, removed_element);
-}
-
-void* set_at(Set const* const set, size_t const i) {
-    if (i >= set->arena.capacity)
-        return NULL;
-    return set->ptrs[i];
 }
 
 void set_empty(Set* const set) {
