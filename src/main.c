@@ -12,12 +12,15 @@ enum EntryType {
 	dir
 };
 typedef struct {
-	uint16_t path_offset;  // compressed pointer stored as offset into arena
+	char* path;
 	uint8_t type;
 } Entry;
 
-void enumerate_fs_path(String base_path, Set* const files, StackArena* const arena) {
-	String search_path = string_build_in_stack_arena(arena, (String[]){
+Set enumerate_fs_path(String base_path, StackArena* const master_arena) {
+	size_t const max_expected_entry_count = 32;
+	Set entries = set_generate(sizeof(Entry), max_expected_entry_count, master_arena);
+
+	String search_path = string_build_in_stack_arena(master_arena, (String[]){
 		base_path,
 		SIZED_STRING("\\*.*"),
 		{ 0 }
@@ -33,49 +36,53 @@ void enumerate_fs_path(String base_path, Set* const files, StackArena* const are
 			if(fd.cFileName[0] == '.' && (fd.cFileName[1] == '\0' || fd.cFileName[1] == '.'))
 				continue;
 
-			String path = string_build_in_stack_arena(arena, (String[]){
+			String const path = string_build_in_stack_arena(master_arena, (String[]){
 				base_path,
 				SIZED_STRING("\\"),
 				SIZED_STRING(fd.cFileName),
 				{ 0 }
 			});
+			
+			if (!path.str)  // string won't fit in memory
+				continue;
 
 			Entry entry = {
-				.path_offset = (size_t)path.str - (size_t)arena->data,
+				.path = path.str,
 				.type = fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY ? dir : file
 			};
-			set_add(files, &entry);
-		}while(FindNextFile(directory_handle, &fd)); 
+			if (set_add(&entries, &entry))
+				break;
+		} while (FindNextFile(directory_handle, &fd)); 
 		FindClose(directory_handle); 
-	} 
+	}
+	return entries;
 }
 
 int main() {
 	// configuration
-	size_t const malloc_size  = 2048;
+	size_t const malloc_size  = 16000;
 	size_t const scratch_size = malloc_size;
-	size_t const set_size     = 128;
 
 	// our entire malloc allowance
 	void* true_dynamic_memory = malloc(malloc_size);
 
 	// arena setup to organize malloc use
 	StackArena arena = stack_arena_generate(true_dynamic_memory, scratch_size);
-	Set entry_set = set_generate(set_size, sizeof(Entry), &arena);
 
-	enumerate_fs_path(SIZED_STRING("."), &entry_set, &arena);
+	Set entry_set = enumerate_fs_path(SIZED_STRING("."), &arena);
 
-	size_t const entry_set_consumed_memory = entry_set.count*(entry_set.arena.object_size+sizeof(void*));
+	size_t const entry_set_consumed_memory = entry_set.arena.count*(entry_set.arena.object_size+sizeof(void*));
 	size_t const scratch_consumed_memory = arena.used;
+	printf("entry count: %u\n", entry_set.arena.count);
 	printf("\nused %zu bytes -- %zu scratch, %zu set\n",
 		entry_set_consumed_memory+scratch_consumed_memory,
 		scratch_consumed_memory,
 		entry_set_consumed_memory);
-
 	set_foreach(entry_set, i) {
+		printf("i = %zu\n", i);
 		Entry* entry = set_at(&entry_set, i);
 		if (entry)
-			puts((char*)arena.data + entry->path_offset);
+			printf("%zu: %s\n", i, entry->path);
 		else
 			puts("<ERROR>");
 	}
