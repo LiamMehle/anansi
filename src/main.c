@@ -8,79 +8,78 @@
 #include "string.c"
 
 enum EntryType {
-    file,
-    dir
+	file,
+	dir
 };
 typedef struct {
-    uint16_t path_offset;  // compressed pointer stored as offset into arena
-    uint8_t type;
+	uint16_t path_offset;  // compressed pointer stored as offset into arena
+	uint8_t type;
 } Entry;
 
 void enumerate_fs_path(String base_path, Set* const files, StackArena* const arena) {
-    String search_path = string_build_in_stack_arena(arena, (String[]){
-        base_path,
-        SIZED_STRING("\\*.*"),
-        { 0 }
-    });
+	String search_path = string_build_in_stack_arena(arena, (String[]){
+		base_path,
+		SIZED_STRING("\\*.*"),
+		{ 0 }
+	});
 
 
-    WIN32_FIND_DATA fd; 
-    HANDLE directory_handle = FindFirstFile(search_path.str, &fd); 
-    if(directory_handle != INVALID_HANDLE_VALUE) {
-        do {
-            // read all (real) files in current folder
-            // , delete '!' read other 2 default folder . and ..
-            if(fd.cFileName[0] == '.' && (fd.cFileName[1] == '\0' || fd.cFileName[1] == '.'))
-                continue;
+	WIN32_FIND_DATA fd; 
+	HANDLE directory_handle = FindFirstFile(search_path.str, &fd); 
+	if(directory_handle != INVALID_HANDLE_VALUE) {
+		do {
+			// read all (real) files in current folder
+			// , delete '!' read other 2 default folder . and ..
+			if(fd.cFileName[0] == '.' && (fd.cFileName[1] == '\0' || fd.cFileName[1] == '.'))
+				continue;
 
-            String path = string_build_in_stack_arena(arena, (String[]){
-                base_path,
-                SIZED_STRING("\\"),
-                SIZED_STRING(fd.cFileName),
-                { 0 }
-            });
+			String path = string_build_in_stack_arena(arena, (String[]){
+				base_path,
+				SIZED_STRING("\\"),
+				SIZED_STRING(fd.cFileName),
+				{ 0 }
+			});
 
-            Entry entry = {
-                .path_offset = (size_t)path.str - (size_t)arena->data,
-                .type = fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY ? dir : file
-            };
-            set_add(files, &entry);
-        }while(FindNextFile(directory_handle, &fd)); 
-        FindClose(directory_handle); 
-    } 
+			Entry entry = {
+				.path_offset = (size_t)path.str - (size_t)arena->data,
+				.type = fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY ? dir : file
+			};
+			set_add(files, &entry);
+		}while(FindNextFile(directory_handle, &fd)); 
+		FindClose(directory_handle); 
+	} 
 }
 
 int main() {
-    // configuration
-    size_t const malloc_size  = 2048;
-    size_t const scratch_size = malloc_size;
-    size_t const set_size     = 128;
+	// configuration
+	size_t const malloc_Pize  = 2048;
+	size_t const scratch_size = malloc_size;
+	size_t const set_size     = 128;
 
-    // our entire malloc allowance
-    void* true_dynamic_memory = malloc(malloc_size);
+	// our entire malloc allowance
+	void* true_dynamic_memory = malloc(malloc_size);
 
-    // arena setup to organize malloc use
-    StackArena arena = stack_arena_generate(true_dynamic_memory, scratch_size);
-    Set entry_set = set_generate(set_size, sizeof(Entry), &arena);
+	// arena setup to organize malloc use
+	StackArena arena = stack_arena_generate(true_dynamic_memory, scratch_size);
+	Set entry_set = set_generate(set_size, sizeof(Entry), &arena);
 
-    enumerate_fs_path(SIZED_STRING("."), &entry_set, &arena);
+	enumerate_fs_path(SIZED_STRING("."), &entry_set, &arena);
 
-    size_t const entry_set_consumed_memory = entry_set.count*(entry_set.arena.object_size+sizeof(void*));
-    size_t const scratch_consumed_memory = arena.used;
-    printf("\nused %zu bytes -- %zu scratch, %zu set\n",
-        entry_set_consumed_memory+scratch_consumed_memory,
-        scratch_consumed_memory,
-        entry_set_consumed_memory);
-    set_foreach(entry_set, i) {
-        Entry* entry = set_at(&entry_set, i);
-        if (entry)
-            puts((char*)arena.data + entry->path_offset);
-        else
-            puts("<ERROR>");
-    }
+	size_t const entry_set_consumed_memory = entry_set.count*(entry_set.arena.object_size+sizeof(void*));
+	size_t const scratch_consumed_memory = arena.used;
+	printf("\nused %zu bytes -- %zu scratch, %zu set\n",
+		entry_set_consumed_memory+scratch_consumed_memory,
+		scratch_consumed_memory,
+		entry_set_consumed_memory);
+	set_foreach(entry_set, i) {
+		Entry* entry = set_at(&entry_set, i);
+		if (entry)
+			puts((char*)arena.data + entry->path_offset);
+		else
+			puts("<ERROR>");
+	}
 
-    puts("done");
-    stack_arena_empty(&arena);
-    return 0;
+	puts("done");
+	stack_arena_empty(&arena);
+	return 0;
 }
-// .\*.*.\CMakeCache.txt.\CMakeLists.txt.\cmake_install.cmake.\compressor.exe.\Makefile
