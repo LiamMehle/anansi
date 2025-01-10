@@ -79,7 +79,6 @@ int main() {
 		scratch_consumed_memory,
 		entry_set_consumed_memory);
 	set_foreach(entry_set, i) {
-		printf("i = %zu\n", i);
 		Entry* entry = set_at(&entry_set, i);
 		if (entry)
 			printf("%zu: %s\n", i, entry->path);
