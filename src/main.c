@@ -71,7 +71,7 @@ int main() {
 
 	Set entry_set = enumerate_fs_path(SIZED_STRING("."), &arena);
 
-	size_t const entry_set_consumed_memory = entry_set.arena.count*(entry_set.arena.object_size+sizeof(void*));
+	size_t const entry_set_consumed_memory = entry_set.arena.count*(entry_set.arena.object_size+sizeof(*entry_set.offsets));
 	size_t const scratch_consumed_memory = arena.used;
 	printf("entry count: %u\n", entry_set.arena.count);
 	printf("\nused %zu bytes -- %zu scratch, %zu set\n",
