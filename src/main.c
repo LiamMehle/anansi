@@ -16,9 +16,13 @@ typedef struct {
 	uint8_t type;
 } Entry;
 
-Set enumerate_fs_path(String base_path, StackArena* const master_arena) {
+typedef LINKED_LIST_ELEMENT_OF(Entry) EntryElement;
+/**
+ * I'd make use of an object/freelist arena, but then I'd have to split the
+ * master_arena between strings and Entry elements
+ */
+EntryElement* enumerate_fs_path(String base_path, StackArena* const master_arena) {
 	size_t const max_expected_entry_count = 512;
-	Set entries = set_generate(sizeof(Entry), max_expected_entry_count, master_arena);
 
 	String search_path = string_build_in_stack_arena(master_arena, (String[]){
 		base_path,
@@ -26,9 +30,15 @@ Set enumerate_fs_path(String base_path, StackArena* const master_arena) {
 		{ 0 }
 	});
 
-
 	WIN32_FIND_DATA fd; 
-	HANDLE directory_handle = FindFirstFile(search_path.str, &fd); 
+	HANDLE directory_handle = FindFirstFile(search_path.str, &fd);
+
+	// handle built, the string can be freed (which amounts to an integer write)
+	stack_arena_empty(master_arena);
+
+	EntryElement* previous_element = NULL;
+	EntryElement* first_element = NULL;
+
 	if(directory_handle != INVALID_HANDLE_VALUE) {
 		do {
 			// read all (real) files in current folder
@@ -46,16 +56,26 @@ Set enumerate_fs_path(String base_path, StackArena* const master_arena) {
 			if (!path.str)  // string won't fit in memory
 				continue;
 
-			Entry entry = {
-				.path = path.str,
-				.type = fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY ? dir : file
+			EntryElement* entry = STACK_ARENA_ALLOC(EntryElement, master_arena);
+			*entry = (EntryElement){
+				.item = {
+					.path = path.str,
+					.type = fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY ? dir : file
+				},
+				.next = NULL
 			};
-			if (set_add(&entries, &entry))
-				break;
+
+			// branches bad, yes, but these are very predictable
+			if (!first_element)
+				first_element = entry;
+			if (previous_element)
+				previous_element->next = entry;
+
+			previous_element = entry;
 		} while (FindNextFile(directory_handle, &fd)); 
 		FindClose(directory_handle); 
 	}
-	return entries;
+	return first_element;
 }
 
 int main() {
@@ -69,22 +89,18 @@ int main() {
 	// arena setup to organize malloc use
 	StackArena arena = stack_arena_generate(true_dynamic_memory, scratch_size);
 
-	Set entry_set = enumerate_fs_path(SIZED_STRING("."), &arena);
+	EntryElement const* const first_entry = enumerate_fs_path(SIZED_STRING("."), &arena);
 
-	size_t const entry_set_consumed_memory = entry_set.arena.count*(entry_set.arena.object_size+sizeof(*entry_set.offsets));
 	size_t const scratch_consumed_memory = arena.used;
-	printf("entry count: %u\n", entry_set.arena.count);
-	printf("\nused %zu bytes -- %zu scratch of which %zu set\n",
-		entry_set_consumed_memory+scratch_consumed_memory,
-		scratch_consumed_memory,
-		entry_set_consumed_memory);
-	set_foreach(entry_set, i) {
-		Entry* entry = set_at(&entry_set, i);
-		if (entry)
-			printf("%zu: %s\n", i, entry->path);
+	printf("\nused %zu bytes", scratch_consumed_memory);
+
+	EntryElement const* entry = first_entry;
+	do {
+		if (entry->item.path)
+			printf("%s\n", entry->item.path);
 		else
 			puts("<ERROR>");
-	}
+	} while((entry = entry->next));
 
 	puts("done");
 	stack_arena_empty(&arena);
