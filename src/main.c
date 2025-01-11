@@ -96,8 +96,12 @@ int main() {
 
 	EntryElement const* entry = first_entry;
 	do {
+		char* entry_type_string[] = {
+			"file:",
+			"dir: "
+		};
 		if (entry->item.path)
-			printf("%s\n", entry->item.path);
+			printf("%s %s\n", entry_type_string[entry->item.type], entry->item.path);
 		else
 			puts("<ERROR>");
 	} while((entry = entry->next));
