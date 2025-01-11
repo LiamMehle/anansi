@@ -1,11 +1,13 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <windows.h>
+#include <winnt.h>
 
 // yes, it's an implementation file
 // these functions are gonna get inlined anyway
-#include "mem.c"
-#include "string.c"
+#include "mem.h"
+#include "string.h"
+#include "windows_specific.h"
 
 enum EntryType {
 	file,
@@ -22,7 +24,6 @@ typedef LINKED_LIST_ELEMENT_OF(Entry) EntryElement;
  * master_arena between strings and Entry elements
  */
 EntryElement* enumerate_fs_path(String base_path, StackArena* const master_arena) {
-	size_t const max_expected_entry_count = 512;
 
 	String search_path = string_build_in_stack_arena(master_arena, (String[]){
 		base_path,
@@ -80,11 +81,23 @@ EntryElement* enumerate_fs_path(String base_path, StackArena* const master_arena
 
 int main() {
 	// configuration
-	size_t const malloc_size  = 16000;
+	size_t const malloc_size  = GetLargePageMinimum();
 	size_t const scratch_size = malloc_size;
 
+	puts("enabling large pages");
+	printf("EnableLargePagePrivilege() = %s\n", ((char*[]){"false", "true"})[EnableLargePagePrivilege()]);
+
+	printf("attempting to allocate %zu bytes\n", malloc_size);
+
 	// our entire malloc allowance
-	void* true_dynamic_memory = malloc(malloc_size);
+	void* true_dynamic_memory = VirtualAlloc(NULL, malloc_size, MEM_LARGE_PAGES|MEM_COMMIT|MEM_RESERVE, PAGE_READWRITE);
+
+	printf("virtual alloc returned 0x%llx bytes\n", (size_t)true_dynamic_memory);
+
+	if (!true_dynamic_memory) {
+		size_t const last_error = GetLastError();
+		return last_error;
+	}
 
 	// arena setup to organize malloc use
 	StackArena arena = stack_arena_generate(true_dynamic_memory, scratch_size);
@@ -103,7 +116,7 @@ int main() {
 		if (entry->item.path)
 			printf("%s %s\n", entry_type_string[entry->item.type], entry->item.path);
 		else
-			puts("<ERROR>");
+			puts("<ERROR>");	
 	} while((entry = entry->next));
 
 	puts("done");

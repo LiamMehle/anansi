@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.24)
 include(FetchContent)
 project(raven C)
 
-set (sources main.c)
+set (sources main.c windows_specific.c)
 set (srcdir src)
 set (CMAKE_C_STANDARD 23)
 set (CMAKE_C_FLAGS "-Os -Wall -Wextra")

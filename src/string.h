@@ -2,7 +2,7 @@
 #include <string.h>
 #include <stdint.h>
 #include <stdbool.h>
-#include "mem.c"
+#include "mem.h"
 
 typedef struct {
     char* str;
@@ -27,9 +27,9 @@ String string_build_in_stack_arena(StackArena* const arena, String* strings) {
         total_len += strings[i].len;
 
     String string = {
-        .str = stack_arena_alloc(arena, total_len, 1),
+        .str = (char*)stack_arena_alloc(arena, total_len, 1),
         .len = 0,
-        .capacity = total_len
+        .capacity = (count_t)total_len
     };
 
     if (!string.str) {
@@ -64,7 +64,7 @@ StringArena string_arena_generate(StackArena* const arena, size_t const segment_
 }
 
 FragmentedStringHandle string_arena_store(StringArena* const arena, String remaining_string) {
-    struct StringSegment* previous_segment = object_arena_alloc(arena);
+    struct StringSegment* previous_segment = (struct StringSegment*)object_arena_alloc(arena);
     FragmentedStringHandle output = {
         .first_segment = previous_segment,
         .total_len = remaining_string.len
@@ -73,7 +73,7 @@ FragmentedStringHandle string_arena_store(StringArena* const arena, String remai
     remaining_string.str += min(remaining_string.len, fragment_size);
     remaining_string.len -= min(remaining_string.len, fragment_size);
     while (remaining_string.len > 0) {
-        struct StringSegment* segment = object_arena_alloc(arena);
+        struct StringSegment* segment = (struct StringSegment*)object_arena_alloc(arena);
 
         memcpy(&segment->fragment, remaining_string.str, min(remaining_string.len, fragment_size));
         remaining_string.str += min(remaining_string.len, fragment_size);
@@ -85,11 +85,11 @@ FragmentedStringHandle string_arena_store(StringArena* const arena, String remai
     return output;
 }
 
-String string_arena_load(StringArena* const arena, FragmentedStringHandle const string_handle, StackArena* const stack_arena) {
+String string_arena_load(StringArena* const arena, FragmentedStringHandle const string_handle) {
     String output = {
-        .str      = stack_arena_alloc(stack_arena, string_handle.total_len, string_handle.total_len),
-        .len      = string_handle.total_len,
-        .capacity = string_handle.total_len,
+        .str      = (char*)object_arena_alloc(arena),
+        .len      = (count_t)string_handle.total_len,
+        .capacity = (count_t)string_handle.total_len,
     };
     struct StringSegment* segment = string_handle.first_segment;
     char* ptr = output.str;
