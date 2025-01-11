@@ -78,7 +78,7 @@ void* stack_arena_alloc(StackArena* const arena, size_t const size, size_t const
     return (uint8_t*)arena->data + new_beginning_offset;
 }
 
-#define STACK_ARENA_ALLOC(TYPE, ARENA) stack_arena_alloc((ARENA), sizeof(TYPE), alignof(TYPE))
+#define STACK_ARENA_ALLOC(TYPE, ARENA) (TYPE*)stack_arena_alloc((ARENA), sizeof(TYPE), alignof(TYPE))
 
 static inline
 void stack_arena_empty(StackArena* const arena) {
