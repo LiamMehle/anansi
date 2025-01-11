@@ -2,10 +2,28 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <memory.h>
+#include <stdalign.h>
+
+/**
+ * General rules of argument order:
+ * (macros only) Types first
+ *               most relevant object, especially if in the name of the function
+ *               ...other arguments
+ * size      (if required) comes after the object it relates to
+ * alignment (if required) comes after (or in place of) the size of the object it relates to
+ */
 
 // size_t alternative, because more than 4GB is unlikely to be needed
 typedef uint32_t count_t;
 
+
+
+// ------------------------ STACK ARENA ------------------------
+/**
+ * The default arena and used for type erasure
+ * O(1) allocator (pointer bump)
+ * no-op deallocation
+ */
 static inline
 size_t round_to_alignment(size_t const pointer, size_t const alignment) {
     return pointer + (alignment - (pointer%alignment));
@@ -60,11 +78,21 @@ void* stack_arena_alloc(StackArena* const arena, size_t const size, size_t const
     return (uint8_t*)arena->data + new_beginning_offset;
 }
 
+#define STACK_ARENA_ALLOC(TYPE, ARENA) stack_arena_alloc((ARENA), sizeof(TYPE), alignof(TYPE))
+
 static inline
 void stack_arena_empty(StackArena* const arena) {
     arena->used = 0;
 }
 
+
+
+// ------------------------ OBJECT/FREELIST ARENA ------------------------
+/**
+ * Assumes allocation in fixed-size chunks
+ * Is able to avoid fragmentation that would obstruct allocation
+ * O(1) allocation, deallocation
+ */
 typedef struct {
     void* data;            // first few bytes are a free list in the form of a bit set
     count_t* free_list;
@@ -81,26 +109,12 @@ typedef struct {
 static inline
 ObjectArena object_arena_generate(size_t const object_size, size_t const object_count, StackArena* const arena) {
     ObjectArena output = {0};
-    output.capacity = object_count;
+    output.capacity    = object_count;
     output.object_size = object_size;
-    output.free_list = stack_arena_alloc(arena, output.capacity*sizeof(count_t), sizeof(count_t));
-    output.data = stack_arena_alloc(arena, output.capacity*object_size, object_size);
+    output.free_list   = stack_arena_alloc(arena, output.capacity*sizeof(count_t), alignof(void*));
+    output.data        = stack_arena_alloc(arena, output.capacity*object_size, alignof(size_t));
 
     return output;
-}
-static inline
-ObjectArena object_arena_generate_malloc(size_t const object_size, size_t const object_count) {
-    ObjectArena arena = {0};
-    arena.capacity = object_count;
-    arena.object_size = object_size;
-    AllocRequest req[] = {
-        { .ptr = (void**)&arena.free_list, .size=arena.capacity*sizeof(count_t) },
-        { .ptr = (void**)&arena.data,      .size=arena.capacity*object_size     },
-        { 0 }
-    };
-    malloc_many(req);
-
-    return arena;
 }
 
 static inline
@@ -131,7 +145,11 @@ void object_arena_empty(ObjectArena* const arena) {
     arena->free_list_count = 0;
 }
 
-// automatically growing unordered collection 
+
+// ------------------------ SET CONTAINER ------------------------
+/**
+ * Object/freelist arena with pointer array for efficient traveral of elements in order
+ */
 typedef struct {
     ObjectArena arena;
     count_t*    offsets;       // contigous `arena.count`-length array of integers to entries in (T[])arena.data
@@ -184,4 +202,15 @@ void set_empty(Set* const set) {
     set->arena.count = 0;
 }
 
+// for-loop over every element in set
 #define set_foreach(set, i) for(size_t i=0; i<(set).arena.count; i++)
+
+
+
+// ------------------------ LINKED LIST (element) ------------------------
+// defines struct that serves as element of linked list of TYPE
+#define LINKED_LIST_ELEMENT_OF(TYPE) \
+struct TYPE##Element {               \
+    struct TYPE##Element* next;      \
+    TYPE item;                       \
+}
