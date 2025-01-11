@@ -77,7 +77,9 @@ void* stack_arena_alloc(StackArena* const arena, size_t const size, size_t const
     arena->used = new_beginning_offset + size;
     return (uint8_t*)arena->data + new_beginning_offset;
 }
-
+/** same name because it has the same semantics as using the function correctly
+ *  and because less typing means people are more likely to use it
+ */
 #define STACK_ARENA_ALLOC(TYPE, ARENA) (TYPE*)stack_arena_alloc((ARENA), sizeof(TYPE), alignof(TYPE))
 
 static inline
