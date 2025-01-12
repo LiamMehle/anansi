@@ -1,13 +1,12 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <windows.h>
-#include <winnt.h>
 
 // yes, it's an implementation file
 // these functions are gonna get inlined anyway
 #include "mem.h"
 #include "string.h"
-#include "windows_specific.h"
+#include "sys.h"
 
 enum EntryType {
 	file,
@@ -82,16 +81,10 @@ EntryElement* enumerate_fs_path(String base_path, StackArena* const master_arena
 
 int main() {
 	// configuration
-	size_t const malloc_size  = GetLargePageMinimum();
-	size_t const scratch_size = malloc_size;
-
-	puts("enabling large pages");
-	printf("EnableLargePagePrivilege() = %s\n", ((char*[]){"false", "true"})[EnableLargePagePrivilege()]);
-
-	printf("attempting to allocate %zu bytes\n", malloc_size);
-
+	size_t const scratch_size = 4096;
 	// our entire malloc allowance
-	void* true_dynamic_memory = VirtualAlloc(NULL, malloc_size, MEM_LARGE_PAGES|MEM_COMMIT|MEM_RESERVE, PAGE_READWRITE);
+	sys_init();
+	void* true_dynamic_memory = sys_alloc(scratch_size);
 
 	printf("virtual alloc returned 0x%llx bytes\n", (size_t)true_dynamic_memory);
 
