@@ -47,8 +47,8 @@ EntryElement* enumerate_fs_path(String base_path, StackArena* const master_arena
 	do {
 		String filename = SIZED_STRING(fd.cFileName);
 
-		// ensure the entry is not one of the special paths
-		if(fd.cFileName[0] == '.' && (fd.cFileName[1] == '\0' || fd.cFileName[1] == '.'))
+		if (string_compare(filename, current_dir)
+			|| string_compare(filename, parent_dir))
 			continue;
 
 		String const path = string_build_in_stack_arena(master_arena, (String[]){
