@@ -34,8 +34,7 @@ bool EnableLargePagePrivilege() {
     if (!OpenProcessToken(GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY, &hToken)) {
         printf("OpenProcessToken failed: %lu\n", GetLastError());
         return FALSE;
-    } else
-        puts("OpenProcessToken succeeded");
+    }
 
     BOOL result = EnablePrivilege(hToken, SE_LOCK_MEMORY_NAME);
     CloseHandle(hToken);

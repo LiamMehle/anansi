@@ -36,12 +36,17 @@ EntryElement* enumerate_fs_path(String base_path, StackArena* const master_arena
 	// handle built, the string can be freed (which amounts to an integer write)
 	stack_arena_empty(master_arena);
 
+	String const current_dir = SIZED_STRING(".");
+	String const parent_dir  = SIZED_STRING("..");
+
 	EntryElement* previous_element = NULL;
 	EntryElement* first_element = NULL;
 
 	if(directory_handle == INVALID_HANDLE_VALUE)
 		return first_element;
 	do {
+		String filename = SIZED_STRING(fd.cFileName);
+
 		// ensure the entry is not one of the special paths
 		if(fd.cFileName[0] == '.' && (fd.cFileName[1] == '\0' || fd.cFileName[1] == '.'))
 			continue;
@@ -49,7 +54,7 @@ EntryElement* enumerate_fs_path(String base_path, StackArena* const master_arena
 		String const path = string_build_in_stack_arena(master_arena, (String[]){
 			base_path,
 			SIZED_STRING("\\"),
-			SIZED_STRING(fd.cFileName),
+			filename,
 			{ 0 }
 		});
 		if (!path.str)  // allocation failed, string won't fit in memory
@@ -85,8 +90,6 @@ int main() {
 	// our entire malloc allowance
 	sys_init();
 	void* true_dynamic_memory = sys_alloc(scratch_size);
-
-	printf("virtual alloc returned 0x%llx bytes\n", (size_t)true_dynamic_memory);
 
 	if (!true_dynamic_memory) {
 		size_t const last_error = GetLastError();
