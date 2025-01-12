@@ -40,42 +40,43 @@ EntryElement* enumerate_fs_path(String base_path, StackArena* const master_arena
 	EntryElement* previous_element = NULL;
 	EntryElement* first_element = NULL;
 
-	if(directory_handle != INVALID_HANDLE_VALUE) {
-		do {
-			// read all (real) files in current folder
-			// , delete '!' read other 2 default folder . and ..
-			if(fd.cFileName[0] == '.' && (fd.cFileName[1] == '\0' || fd.cFileName[1] == '.'))
-				continue;
+	if(directory_handle == INVALID_HANDLE_VALUE)
+		return first_element;
+	do {
+		// ensure the entry is not one of the special paths
+		if(fd.cFileName[0] == '.' && (fd.cFileName[1] == '\0' || fd.cFileName[1] == '.'))
+			continue;
 
-			String const path = string_build_in_stack_arena(master_arena, (String[]){
-				base_path,
-				SIZED_STRING("\\"),
-				SIZED_STRING(fd.cFileName),
-				{ 0 }
-			});
-			
-			if (!path.str)  // string won't fit in memory
-				continue;
+		String const path = string_build_in_stack_arena(master_arena, (String[]){
+			base_path,
+			SIZED_STRING("\\"),
+			SIZED_STRING(fd.cFileName),
+			{ 0 }
+		});
+		if (!path.str)  // allocation failed, string won't fit in memory
+			continue;
 
-			EntryElement* entry = STACK_ARENA_ALLOC(EntryElement, master_arena);
-			*entry = (EntryElement){
-				.item = {
-					.path = path.str,
-					.type = fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY ? dir : file
-				},
-				.next = NULL
-			};
+		EntryElement* entry = STACK_ARENA_ALLOC(EntryElement, master_arena);
+		if (!entry)     // entry allocation failed
+			break;      // there's no point iterating further
 
-			// branches bad, yes, but these are very predictable
-			if (!first_element)
-				first_element = entry;
-			if (previous_element)
-				previous_element->next = entry;
+		*entry = (EntryElement){
+			.item = {
+				.path = path.str,
+				.type = fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY ? dir : file
+			},
+			.next = NULL
+		};
 
-			previous_element = entry;
-		} while (FindNextFile(directory_handle, &fd)); 
-		FindClose(directory_handle); 
-	}
+		// branches bad, yes, but these are very predictable
+		if (!first_element)
+			first_element = entry;
+		if (previous_element)
+			previous_element->next = entry;
+
+		previous_element = entry;
+	} while (FindNextFile(directory_handle, &fd)); 
+	FindClose(directory_handle);
 	return first_element;
 }
 

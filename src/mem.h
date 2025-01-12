@@ -44,7 +44,7 @@ int malloc_many(AllocRequest* const requests) {
         total_memory_requested += requests[i].size;
 
     size_t offset = 0;  // could be inilned, but name is better
-    char* base_ptr = malloc(total_memory_requested);
+    char* base_ptr = (char*)malloc(total_memory_requested);
     if (base_ptr == NULL)
         return 0;
 
