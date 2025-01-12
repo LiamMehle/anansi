@@ -122,22 +122,19 @@ int main() {
 		.capacity = output_len,
 		.len = 0
 	};
-	String temp_str =  {
-		.str = stack_arena_alloc(&arena, 512, 1),
-		.capacity = 512,
-		.len = 0
-	};
-	if (!(temp_str.str && output_str.str)) {
+	if (!output_str.str) {
 		puts("failed to allocate output str memory");
 		return 2;
 	}
 
-	list_foreach(first_entry, EntryElement, entry) {
-		temp_str.len = 0;
-
-		format_entry(&temp_str, entry->item);
-		output_str = string_append(output_str, temp_str);
-	}
+	// need to simplify
+	list_foreach(first_entry, EntryElement, entry)
+		output_str.len += format_entry(
+			&(String) {                       // remaining storage in output_str
+			.str = output_str.str + output_str.len,
+			.len = 0,
+			.capacity = output_str.capacity - output_str.len
+		}, entry->item);                      // item to write
 
 	puts(output_str.str);
 
