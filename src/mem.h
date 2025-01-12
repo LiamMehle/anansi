@@ -68,6 +68,7 @@ StackArena stack_arena_generate(void* const buffer, size_t const capacity) {
     return arena;
 }
 
+static inline
 void* stack_arena_alloc(StackArena* const arena, size_t const size, size_t const alignment) {
     // .data is not assumed to be aligned, so math is done on the pointer, not offset
     if (arena->used >= arena->capacity)
@@ -184,6 +185,7 @@ int set_add(Set* const set, void const* const object) {
     return 0;
 }
 
+static inline
 void* set_at(Set const* const set, size_t const i) {
     if (i >= set->arena.capacity)
         return NULL;
@@ -199,6 +201,7 @@ void set_remove(Set* const set, size_t const i) {
     object_arena_free(&set->arena, removed_element);
 }
 
+static inline
 void set_empty(Set* const set) {
     object_arena_empty(&set->arena);
     set->arena.count = 0;

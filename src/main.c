@@ -22,6 +22,7 @@ typedef LINKED_LIST_ELEMENT_OF(Entry) EntryElement;
  * I'd make use of an object/freelist arena, but then I'd have to split the
  * master_arena between strings and Entry elements
  */
+static inline
 EntryElement* enumerate_fs_path(String base_path, StackArena* const master_arena) {
 
 	String search_path = string_build_in_stack_arena(master_arena, (String[]){
@@ -88,6 +89,7 @@ EntryElement* enumerate_fs_path(String base_path, StackArena* const master_arena
  * Attempts to write a string representing the entry at the end of the string.
  * @return bytes that would be written if there was enough space.
  */
+static inline
 int format_entry_inplace(String* const s, Entry const entry) {
 	char* entry_type_string[] = {
 		"file:",

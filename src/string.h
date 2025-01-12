@@ -46,6 +46,7 @@ String string_build_in_stack_arena(StackArena* const arena, String* strings) {
 
 #define SIZED_STRING(STR) (String){ .str=STR, .len=strlen(STR), .capacity=0 }
 
+static inline
 bool string_compare(String const a, String const b) {
 	if (a.len != b.len)
 		return false;
@@ -77,10 +78,12 @@ typedef struct {
 
 typedef ObjectArena StringArena;
 
+static inline
 StringArena string_arena_generate(StackArena* const arena, size_t const segment_count) {
 	return object_arena_generate(sizeof(struct StringSegment), segment_count, arena);
 }
 
+static inline
 FragmentedStringHandle string_arena_store(StringArena* const arena, String remaining_string) {
 	struct StringSegment* previous_segment = (struct StringSegment*)object_arena_alloc(arena);
 	FragmentedStringHandle output = {
@@ -103,6 +106,7 @@ FragmentedStringHandle string_arena_store(StringArena* const arena, String remai
 	return output;
 }
 
+static inline
 String string_arena_load(StringArena* const arena, FragmentedStringHandle const string_handle) {
 	String output = {
 		.str      = (char*)object_arena_alloc(arena),
@@ -123,6 +127,7 @@ String string_arena_load(StringArena* const arena, FragmentedStringHandle const 
 	return output;
 }
 
+static inline
 void string_arena_free(StringArena* const arena, FragmentedStringHandle const string_handle) {
 	struct StringSegment* segment = string_handle.first_segment;
 	while (TRUE) {
