@@ -84,18 +84,18 @@ EntryElement* enumerate_fs_path(String base_path, StackArena* const master_arena
 	return first_element;
 }
 
-int format_entry(String s, Entry const entry) {
+int format_entry(String* const s, Entry const entry) {
 	char* entry_type_string[] = {
 		"file:",
 		"dir: "
 	};
-
-	return printf("%s %s\n", entry_type_string[entry.type], entry.path);
+	s->len = snprintf(s->str, s->capacity, "%s %s\n", entry_type_string[entry.type], entry.path.str);
+	return s->len;
 }
 
 int main() {
 	// configuration
-	size_t const scratch_size = 4096;
+	size_t const scratch_size = 4096*4;
 	// our entire malloc allowance
 	sys_init();
 	void* true_dynamic_memory = sys_alloc(scratch_size);
@@ -113,10 +113,33 @@ int main() {
 	size_t const scratch_consumed_memory = arena.used;
 	printf("\nused %zu bytes", scratch_consumed_memory);
 
-	EntryElement const* entry = first_entry;
-	do {
+	size_t output_len = 0;
+	list_foreach(first_entry, EntryElement, entry)
+		output_len += format_entry(&(String){ 0 }, entry->item);
 
-	} while((entry = entry->next));
+	String output_str = {
+		.str = stack_arena_alloc(&arena, output_len, 1),
+		.capacity = output_len,
+		.len = 0
+	};
+	String temp_str =  {
+		.str = stack_arena_alloc(&arena, 512, 1),
+		.capacity = 512,
+		.len = 0
+	};
+	if (!(temp_str.str && output_str.str)) {
+		puts("failed to allocate output str memory");
+		return 2;
+	}
+
+	list_foreach(first_entry, EntryElement, entry) {
+		temp_str.len = 0;
+
+		format_entry(&temp_str, entry->item);
+		output_str = string_append(output_str, temp_str);
+	}
+
+	puts(output_str.str);
 
 	puts("done");
 	stack_arena_empty(&arena);

@@ -216,3 +216,5 @@ struct TYPE##Element {               \
     struct TYPE##Element* next;      \
     TYPE item;                       \
 }
+
+#define list_foreach(first, T, e) for(T const* entry = first_entry; entry; entry = entry->next)
