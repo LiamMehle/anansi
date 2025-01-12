@@ -19,6 +19,12 @@ set (OUTPUT_PATH "bin")
 
 # find_package(ZLIB REQUIRED)
 
+find_package(OpenMP)
+if(OpenMP_CXX_FOUND)
+	add_compile_definitions(OPEN_MP)
+    target_link_libraries(MyTarget PUBLIC OpenMP::OpenMP_CXX)
+endif()
+
 list (TRANSFORM sources PREPEND "src/")
 
 add_executable(${PROJECT_NAME} ${sources})

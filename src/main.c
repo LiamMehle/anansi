@@ -13,7 +13,7 @@ enum EntryType {
 	dir
 };
 typedef struct {
-	char* path;
+	String path;
 	uint8_t type;
 } Entry;
 
@@ -66,7 +66,7 @@ EntryElement* enumerate_fs_path(String base_path, StackArena* const master_arena
 
 		*entry = (EntryElement){
 			.item = {
-				.path = path.str,
+				.path = path,
 				.type = fd.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY ? dir : file
 			},
 			.next = NULL
@@ -82,6 +82,15 @@ EntryElement* enumerate_fs_path(String base_path, StackArena* const master_arena
 	} while (FindNextFile(directory_handle, &fd)); 
 	FindClose(directory_handle);
 	return first_element;
+}
+
+int format_entry(String s, Entry const entry) {
+	char* entry_type_string[] = {
+		"file:",
+		"dir: "
+	};
+
+	return printf("%s %s\n", entry_type_string[entry.type], entry.path);
 }
 
 int main() {
@@ -106,14 +115,7 @@ int main() {
 
 	EntryElement const* entry = first_entry;
 	do {
-		char* entry_type_string[] = {
-			"file:",
-			"dir: "
-		};
-		if (entry->item.path)
-			printf("%s %s\n", entry_type_string[entry->item.type], entry->item.path);
-		else
-			puts("<ERROR>");	
+
 	} while((entry = entry->next));
 
 	puts("done");
