@@ -84,12 +84,17 @@ EntryElement* enumerate_fs_path(String base_path, StackArena* const master_arena
 	return first_element;
 }
 
-int format_entry(String* const s, Entry const entry) {
+/**
+ * Attempts to write a string representing the entry at the end of the string.
+ * @return bytes that would be written if there was enough space.
+ */
+int format_entry_inplace(String* const s, Entry const entry) {
 	char* entry_type_string[] = {
 		"file:",
 		"dir: "
 	};
-	s->len = snprintf(s->str, s->capacity, "%s %s\n", entry_type_string[entry.type], entry.path.str);
+	s->len += snprintf(s->str + s->len, s->capacity - s->len, "%s %s\n", entry_type_string[entry.type], entry.path.str);
+
 	return s->len;
 }
 
@@ -115,7 +120,7 @@ int main() {
 
 	size_t output_len = 0;
 	list_foreach(first_entry, EntryElement, entry)
-		output_len += format_entry(&(String){ 0 }, entry->item);
+		output_len += format_entry_inplace(&(String){ 0 }, entry->item);
 
 	String output_str = {
 		.str = stack_arena_alloc(&arena, output_len, 1),
@@ -129,12 +134,7 @@ int main() {
 
 	// need to simplify
 	list_foreach(first_entry, EntryElement, entry)
-		output_str.len += format_entry(
-			&(String) {                       // remaining storage in output_str
-			.str = output_str.str + output_str.len,
-			.len = 0,
-			.capacity = output_str.capacity - output_str.len
-		}, entry->item);                      // item to write
+		format_entry_inplace(&output_str, entry->item);
 
 	puts(output_str.str);
 
