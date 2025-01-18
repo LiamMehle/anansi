@@ -5,7 +5,7 @@ project(raven C)
 set (sources main.c windows_specific.c)
 set (srcdir src)
 set (CMAKE_C_STANDARD 23)
-set (CMAKE_C_FLAGS "-Os -Wall -Wextra")
+set (CMAKE_C_FLAGS "-Os -Wall -Wextra -flto")
 set (CMAKE_BUILD_DIRECTORY "build")
 set (OUTPUT_PATH "bin")
 
