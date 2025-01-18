@@ -18,6 +18,10 @@
 typedef uint32_t count_t;
 
 
+// ------------------------ COMMON      ------------------------
+// fake a value of given type by casting NULL address to TYPE* address and deref
+#define FAKE_VALUE(TYPE) (*((TYPE*)NULL)
+
 
 // ------------------------ STACK ARENA ------------------------
 /**
@@ -241,6 +245,7 @@ typedef ARRAY_OF(void) TGArray;
  *  multiple-evaluation of arguments. It however requires a macro for
  *  type-punning to create a type-safe API.
  */
+static inline
 TGArray array_generate(
     size_t      const capacity,
     size_t      const object_size,
@@ -257,13 +262,13 @@ TGArray array_generate(
  * FUCKERY AHEAD
  */
 
-#define ARRAY_UNIQUE_NAME __FILE__##__COUNT__
+#define _ARRAY_UNIQUE_NAME __FILE__##__COUNT__
 /** temporary because comma operator does not allow for variable definitions
  *  since it's thread_local, no race conditions,
  *  any optimization level should inline the copy for the cast
  */
 thread_local  // never thought I'd be using this one
-TGArray ARRAY_UNIQUE_NAME = { 0 };
+TGArray _ARRAY_UNIQUE_NAME = { 0 };
 
 /** A lot of effort went into this one.
  * I've tried:
@@ -273,13 +278,13 @@ TGArray ARRAY_UNIQUE_NAME = { 0 };
  * - return zero-init'd value and use function with output-argument to init it,
  *     cannot get reference to returned value
  */
-#define CAST(TYPE, VALUE)                                  \
-    (ARRAY_UNIQUE_NAME = VALUE, /* promote to lvalue */    \
-    *(TYPE*)&ARRAY_UNIQUE_NAME) /* cast said lvalue  */
+#define _ARRAY_CAST(TYPE, VALUE)                           \
+    (_ARRAY_UNIQUE_NAME = VALUE, /* promote to lvalue */   \
+    *(TYPE*)&_ARRAY_UNIQUE_NAME) /* cast said lvalue  */
 
-#define ARRAY_GENERATE(ARRAY_TYPE, CAPACITY, allocator) \
-    CAST(ARRAY_TYPE,                                    \
-        array_generate(CAPACITY,                        \
-        sizeof(*((ARRAY_TYPE*)NULL)->array),            \
-        alignof(*((ARRAY_TYPE*)NULL)->array),           \
+#define ARRAY_GENERATE(ARRAY_TYPE, CAPACITY, allocator)    \
+    _ARRAY_CAST(ARRAY_TYPE,                                \
+        array_generate(CAPACITY,                           \
+        sizeof(FAKE_VALUE(ARRAY_TYPE)->array),             \
+        alignof(FAKE_VALUE(ARRAY_TYPE)->array),            \
         allocator))
