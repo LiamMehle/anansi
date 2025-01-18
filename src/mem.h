@@ -246,7 +246,7 @@ typedef ARRAY_OF(void) TGArray;
  *  type-punning to create a type-safe API.
  */
 static inline
-TGArray array_generate(
+TGArray _array_generate(
     size_t      const capacity,
     size_t      const object_size,
     size_t      const alignment,
@@ -284,7 +284,7 @@ TGArray _ARRAY_UNIQUE_NAME = { 0 };
 
 #define ARRAY_GENERATE(ARRAY_TYPE, CAPACITY, allocator)    \
     _ARRAY_CAST(ARRAY_TYPE,                                \
-        array_generate(CAPACITY,                           \
+        _array_generate(CAPACITY,                          \
         sizeof(FAKE_VALUE(ARRAY_TYPE)->array),             \
         alignof(FAKE_VALUE(ARRAY_TYPE)->array),            \
         allocator))
