@@ -119,7 +119,7 @@ ObjectArena object_arena_generate(size_t const object_size, size_t const object_
     ObjectArena output = {0};
     output.capacity    = object_count;
     output.object_size = object_size;
-    output.free_list   = stack_arena_alloc(arena, output.capacity*sizeof(count_t), alignof(void*));
+    output.free_list   = (count_t*)stack_arena_alloc(arena, output.capacity*sizeof(count_t), alignof(void*));
     output.data        = stack_arena_alloc(arena, output.capacity*object_size, alignof(size_t));
 
     return output;
@@ -171,7 +171,7 @@ typedef struct {
 static inline
 Set set_generate(size_t const object_size, size_t const capacity, StackArena* const arena) {
     Set set = { 0 };
-    set.offsets = stack_arena_alloc(arena, capacity*sizeof(*set.offsets), sizeof(*set.offsets));
+    set.offsets = (count_t*)stack_arena_alloc(arena, capacity*sizeof(*set.offsets), sizeof(*set.offsets));
     set.arena = object_arena_generate(object_size, capacity, arena);
     return set;
 }
