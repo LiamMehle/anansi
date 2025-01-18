@@ -121,7 +121,7 @@ int main() {
 	printf("\nused %zu bytes", scratch_consumed_memory);
 
 	size_t output_len = 0;
-	list_foreach(first_entry, EntryElement, entry)
+	list_foreach(first_entry, entry)
 		output_len += format_entry_inplace(&(String){ 0 }, entry->item);
 
 	String output_str = {
@@ -135,7 +135,7 @@ int main() {
 	}
 
 	// need to simplify
-	list_foreach(first_entry, EntryElement, entry)
+	list_foreach(first_entry, entry)
 		format_entry_inplace(&output_str, entry->item);
 
 	puts(output_str.str);

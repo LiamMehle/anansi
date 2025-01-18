@@ -220,4 +220,4 @@ struct TYPE##Element {               \
     TYPE item;                       \
 }
 
-#define list_foreach(first, T, e) for(T const* entry = first_entry; entry; entry = entry->next)
+#define list_foreach(first, e) for(typeof(*first) const* entry = first; entry; entry = entry->next)
