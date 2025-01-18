@@ -3,6 +3,7 @@
 #include <stdint.h>
 #include <memory.h>
 #include <stdalign.h>
+#include <threads.h>
 
 /**
  * General rules of argument order:
@@ -221,3 +222,64 @@ struct TYPE##Element {               \
 }
 
 #define list_foreach(first, e) for(typeof(*first) const* entry = first; entry; entry = entry->next)
+
+
+
+// ------------------------ DYNAMIC ARRAY ------------------------
+#define ARRAY_OF(TYPE) \
+struct TYPE##Array {   \
+    count_t len;    \
+    count_t capacity;  \
+    TYPE*   array;     \
+}
+
+/** For library implementation purposes only!
+ *  It is meaningless otherwise.
+ */
+typedef ARRAY_OF(void) TGArray;
+/** function implementation to avoid macro-related issues like
+ *  multiple-evaluation of arguments. It however requires a macro for
+ *  type-punning to create a type-safe API.
+ */
+TGArray array_generate(
+    size_t      const capacity,
+    size_t      const object_size,
+    size_t      const alignment,
+    StackArena* const allocator) {
+    return (TGArray) {
+        .len      = (count_t)0,
+        .capacity = (count_t)capacity,
+        .array    = stack_arena_alloc(allocator, capacity*object_size, alignment)
+    };
+}
+
+/**
+ * FUCKERY AHEAD
+ */
+
+#define ARRAY_UNIQUE_NAME __FILE__##__COUNT__
+/** temporary because comma operator does not allow for variable definitions
+ *  since it's thread_local, no race conditions,
+ *  any optimization level should inline the copy for the cast
+ */
+thread_local  // never thought I'd be using this one
+TGArray ARRAY_UNIQUE_NAME = { 0 };
+
+/** A lot of effort went into this one.
+ * I've tried:
+ * - a simple macro, it has the issue of evaluating parameters multiple times,
+ * - a macro that delegates most of the work to a function, the return type
+ *     cannot be casted because it's an rvalue,
+ * - return zero-init'd value and use function with output-argument to init it,
+ *     cannot get reference to returned value
+ */
+#define CAST(TYPE, VALUE)                                  \
+    (ARRAY_UNIQUE_NAME = VALUE, /* promote to lvalue */    \
+    *(TYPE*)&ARRAY_UNIQUE_NAME) /* cast said lvalue  */
+
+#define ARRAY_GENERATE(ARRAY_TYPE, CAPACITY, allocator) \
+    CAST(ARRAY_TYPE,                                    \
+        array_generate(CAPACITY,                        \
+        sizeof(*((ARRAY_TYPE*)NULL)->array),            \
+        alignof(*((ARRAY_TYPE*)NULL)->array),           \
+        allocator))
