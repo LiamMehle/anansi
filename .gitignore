@@ -6,3 +6,5 @@ CmakeFiles
 build
 .vscode
 _deps
+.cache
+.clangd
