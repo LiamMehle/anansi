@@ -3,6 +3,7 @@
 I'm pretty sure anyone looking at this README for help doesn't have the patience for flowery language, hence most of it is rather terse.
 
 ## usage:
+0. set your C version to C23 (or risk disabling some features)
 1. configuration:
 before the include, add
 `#define ANASI_STRING` for string utilities
