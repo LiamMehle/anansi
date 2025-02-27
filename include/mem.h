@@ -1,9 +1,4 @@
 #pragma once
-#include <stdlib.h>
-#include <stdint.h>
-#include <memory.h>
-#include <stdalign.h>
-#include <threads.h>
 
 /**
  * General rules of argument order:
@@ -20,7 +15,7 @@ typedef uint32_t count_t;
 
 // ------------------------ COMMON      ------------------------
 // fake a value of given type by casting NULL address to TYPE* address and deref
-#define FAKE_VALUE(TYPE) (*((TYPE*)NULL)
+#define FAKE_VALUE(TYPE) (*((TYPE*)NULL))
 
 
 // ------------------------ STACK ARENA ------------------------
@@ -39,6 +34,8 @@ typedef struct {
     size_t size;
 } AllocRequest;
 
+#ifdef ANASI_MALLOC
+#include <stdlib.h>
 // allocates memory for all requests in one chunk
 // element after last should be zero-init'd
 static inline
@@ -64,6 +61,7 @@ typedef struct {
     count_t capacity;
     count_t used;
 } StackArena;
+#endif
 
 static inline
 StackArena stack_arena_generate(void* const buffer, size_t const capacity) {
