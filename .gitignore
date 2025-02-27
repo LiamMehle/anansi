@@ -8,3 +8,6 @@ build
 _deps
 .cache
 .clangd
+build/
+CMakeLists.txt
+src/
