@@ -1,5 +1,14 @@
 #pragma once
+#ifdef__STDC_VERSION__
+#if __STDC_VERSION__ >= 202000
+#define C23FEATURES
+#endif
+#endif
 
+#if !defined(C23FEATURES) && __STDC_VERSION__ >=201000
+#include <stdalign.h>
+#define alignof _Alignof
+#endif
 /**
  * General rules of argument order:
  * (macros only) Types first
@@ -222,12 +231,13 @@ struct TYPE##Element {               \
     struct TYPE##Element* next;      \
     TYPE item;                       \
 }
-
+#ifdef C23FEATURES
 #define list_foreach(first, e) for(typeof(*first) const* entry = first; entry; entry = entry->next)
-
+#endif
 
 
 // ------------------------ DYNAMIC ARRAY ------------------------
+#ifdef C23FEATURES
 #define ARRAY_OF(TYPE) \
 struct TYPE##Array {   \
     count_t len;    \
@@ -286,3 +296,4 @@ TGArray _ARRAY_UNIQUE_NAME = { 0 };
         sizeof(FAKE_VALUE(ARRAY_TYPE)->array),             \
         alignof(FAKE_VALUE(ARRAY_TYPE)->array),            \
         allocator))
+#endif

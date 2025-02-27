@@ -53,13 +53,14 @@ bool string_compare(String const a, String const b) {
 
 	bool equal = true;
 
-	// #ifdef OPEN_MP
+	// some additional optimizations could be performed for abusing simd, but I've not gotten to the point of requiring that yet
+	#ifdef OPEN_MP
 	#pragma omp reduction(reduction-identifier:list) \
 	            linear(a.str, b.str)                 \
 	            simdlen(8)
-	// #else
-	// #warning "Open MP is disabled"
-    // #endif
+	#else
+	#warning "Open MP is disabled, string_compare may perform worse"
+    #endif
 	for (size_t i = 0; i<a.len; i++)
 		equal &= a.str[i] == b.str[i];
 	return equal;
