@@ -1,5 +1,5 @@
 #pragma once
-#ifdef__STDC_VERSION__
+#ifdef __STDC_VERSION__
 #if __STDC_VERSION__ >= 202000
 #define C23FEATURES
 #endif
@@ -9,6 +9,20 @@
 #include <stdalign.h>
 #define alignof _Alignof
 #endif
+
+typedef unsigned long long size_t;
+typedef unsigned uint32_t;      // good enough for not relying on stdint.h
+typedef unsigned char uint8_t;  // realistically always true
+#ifndef NULL
+#define NULL ((void*)0)
+#endif
+
+static inline
+void memcpy(void *__restrict dest, const void *__restrict src, size_t n) {
+    for (size_t i=0; i<n; i++)
+        ((uint8_t*)dest)[i] = ((uint8_t*)src)[i];
+}
+
 /**
  * General rules of argument order:
  * (macros only) Types first
@@ -65,12 +79,13 @@ int malloc_many(AllocRequest* const requests) {
     }
     return total_memory_requested;
 }
+#endif
+
 typedef struct {
     void* data;
     count_t capacity;
     count_t used;
 } StackArena;
-#endif
 
 static inline
 StackArena stack_arena_generate(void* const buffer, size_t const capacity) {
