@@ -1,7 +1,6 @@
-#include <string.h>
-#include <stdint.h>
-#include <stdbool.h>
-#include "mem.h"
+#include "./mem.h"
+
+static inline size_t min(size_t a, size_t b) { return a < b ? a : b; }
 
 typedef struct {
 	char* str;
@@ -116,7 +115,7 @@ String string_arena_load(StringArena* const arena, FragmentedStringHandle const 
 	struct StringSegment* segment = string_handle.first_segment;
 	char* ptr = output.str;
 	size_t remaining_len = output.len;
-	while (TRUE) {
+	while (1) {
 		memcpy(ptr, &segment->fragment, min(remaining_len, fragment_size));
 		remaining_len -= fragment_size;
 		if (segment->next)
@@ -130,7 +129,7 @@ String string_arena_load(StringArena* const arena, FragmentedStringHandle const 
 static inline
 void string_arena_free(StringArena* const arena, FragmentedStringHandle const string_handle) {
 	struct StringSegment* segment = string_handle.first_segment;
-	while (TRUE) {
+	while (1) {
 		object_arena_free(arena, segment);
 		if (segment->next)
 			segment = segment->next;
