@@ -312,3 +312,7 @@ TGArray _ARRAY_UNIQUE_NAME = { 0 };
         alignof(FAKE_VALUE(ARRAY_TYPE)->array),            \
         allocator))
 #endif
+
+#ifdef ANASI_STRING
+#include "./string.h"
+#endif
