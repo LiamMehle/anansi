@@ -57,7 +57,7 @@ typedef struct {
     size_t size;
 } AllocRequest;
 
-#ifdef ANASI_MALLOC
+#ifdef ANANSI_MALLOC
 #include <stdlib.h>
 // allocates memory for all requests in one chunk
 // element after last should be zero-init'd
@@ -313,6 +313,6 @@ TGArray _ARRAY_UNIQUE_NAME = { 0 };
         allocator))
 #endif
 
-#ifdef ANASI_STRING
+#ifdef ANANSI_STRING
 #include "./string.h"
 #endif
