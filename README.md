@@ -1,4 +1,4 @@
-# Anasi: Arena library written in C
+# Anansi: Arena library written in C
 
 I'm pretty sure anyone looking at this README for help doesn't have the patience for flowery language, hence most of it is rather terse.
 
@@ -6,12 +6,12 @@ I'm pretty sure anyone looking at this README for help doesn't have the patience
 0. set your C version to C23 (or risk disabling some features)
 1. configuration:
 before the include, add
-`#define ANASI_STRING` for string utilities
-`#define ANASI_MALLOC` for malloc convenience utilities
+`#define ANANSI_STRING` for string utilities
+`#define ANANSI_MALLOC` for malloc convenience utilities
 
 2. include
 Add the following to the top of your implementation file:
-`#include "path/to/anasi/include/mem.h"`
+`#include "path/to/anansi/include/mem.h"`
 
 ## API:
 Each structure has it's own set of functions for init/creation and mutation prefixed by their name.
@@ -27,7 +27,7 @@ There are no implementation files in the base library.
   - The base and common api used for the other structures or on it's own.
 - `object_arena`, free list, bucket allocator/arena
 - `set`, an unordered, discontinous, iterable/index-addressable `object_arena` with support for iterating over every element and adding and removing elements by pointers
-- `string_arena` (Anasi `string.h`)-- a special purpose storage for storing arbitrary length strings in an `object_arena`
+- `string_arena` (Anansi `string.h`)-- a special purpose storage for storing arbitrary length strings in an `object_arena`
 
 ## special structures:
 - `LINKED_LIST_ELEMENT_OF(TYPE)` & `list_foreach(first, e)`
