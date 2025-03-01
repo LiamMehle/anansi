@@ -1,6 +1,14 @@
 #include "./mem.h"
 
-static inline size_t min(size_t a, size_t b) { return a < b ? a : b; }
+static inline anansi_size_t min(anansi_size_t a, anansi_size_t b) { return a < b ? a : b; }
+
+static inline
+anansi_size_t strlen(char const* const s) {
+	anansi_size_t len = 0;
+	while (s[len])
+		len++;
+	return len;
+}
 
 typedef struct {
 	char* str;
@@ -20,7 +28,7 @@ String string_append(String string, String other) {
 
 static inline
 String string_build_in_stack_arena(StackArena* const arena, String* strings) {
-	size_t total_len = 0;
+	anansi_size_t total_len = 0;
 	for (int i=0; strings[i].str; i++)
 		total_len += strings[i].len;
 
@@ -59,7 +67,7 @@ bool string_compare(String const a, String const b) {
 	#else
 	#warning "Open MP is disabled, string_compare may perform worse"
     #endif
-	for (size_t i = 0; i<a.len; i++)
+	for (anansi_size_t i = 0; i<a.len; i++)
 		equal &= a.str[i] == b.str[i];
 	return equal;
 }
@@ -72,13 +80,13 @@ struct StringSegment {
 
 typedef struct {
 	struct StringSegment* first_segment;
-	size_t         total_len;
+	anansi_size_t         total_len;
 } FragmentedStringHandle;
 
 typedef ObjectArena StringArena;
 
 static inline
-StringArena string_arena_generate(StackArena* const arena, size_t const segment_count) {
+StringArena string_arena_generate(StackArena* const arena, anansi_size_t const segment_count) {
 	return object_arena_generate(sizeof(struct StringSegment), segment_count, arena);
 }
 
@@ -114,7 +122,7 @@ String string_arena_load(StringArena* const arena, FragmentedStringHandle const 
 	};
 	struct StringSegment* segment = string_handle.first_segment;
 	char* ptr = output.str;
-	size_t remaining_len = output.len;
+	anansi_size_t remaining_len = output.len;
 	while (1) {
 		memcpy(ptr, &segment->fragment, min(remaining_len, fragment_size));
 		remaining_len -= fragment_size;

@@ -1,4 +1,6 @@
-#pragma once
+#ifndef ANANSI_MEM_H
+#define ANANSI_MEM_H
+
 #ifdef __STDC_VERSION__
 #if __STDC_VERSION__ >= 202000
 #define C23FEATURES
@@ -10,7 +12,7 @@
 #define alignof _Alignof
 #endif
 
-typedef unsigned long long size_t;
+typedef unsigned long long anansi_size_t;
 typedef unsigned uint32_t;      // good enough for not relying on stdint.h
 typedef unsigned char uint8_t;  // realistically always true
 #ifndef NULL
@@ -18,8 +20,8 @@ typedef unsigned char uint8_t;  // realistically always true
 #endif
 
 static inline
-void memcpy(void *__restrict dest, const void *__restrict src, size_t n) {
-    for (size_t i=0; i<n; i++)
+void memcpy(void *__restrict dest, const void *__restrict src, anansi_size_t n) {
+    for (anansi_size_t i=0; i<n; i++)
         ((uint8_t*)dest)[i] = ((uint8_t*)src)[i];
 }
 
@@ -32,7 +34,7 @@ void memcpy(void *__restrict dest, const void *__restrict src, size_t n) {
  * alignment (if required) comes after (or in place of) the size of the object it relates to
  */
 
-// size_t alternative, because more than 4GB is unlikely to be needed
+// anansi_size_t alternative, because more than 4GB is unlikely to be needed
 typedef uint32_t count_t;
 
 
@@ -48,13 +50,13 @@ typedef uint32_t count_t;
  * no-op deallocation
  */
 static inline
-size_t round_to_alignment(size_t const pointer, size_t const alignment) {
+anansi_size_t round_to_alignment(anansi_size_t const pointer, anansi_size_t const alignment) {
     return pointer + (alignment - (pointer%alignment));
 }
 
 typedef struct {
     void** ptr;
-    size_t size;
+    anansi_size_t size;
 } AllocRequest;
 
 #ifdef ANANSI_MALLOC
@@ -63,17 +65,17 @@ typedef struct {
 // element after last should be zero-init'd
 static inline
 int malloc_many(AllocRequest* const requests) {
-    size_t total_memory_requested = 0;
+    anansi_size_t total_memory_requested = 0;
     
-    for (size_t i = 0; requests[i].ptr; i++)
+    for (anansi_size_t i = 0; requests[i].ptr; i++)
         total_memory_requested += requests[i].size;
 
-    size_t offset = 0;  // could be inilned, but name is better
+    anansi_size_t offset = 0;  // could be inilned, but name is better
     char* base_ptr = (char*)malloc(total_memory_requested);
     if (base_ptr == NULL)
         return 0;
 
-    for (size_t i = 0; requests[i].ptr; i++) {
+    for (anansi_size_t i = 0; requests[i].ptr; i++) {
         *(requests[i].ptr) = base_ptr + offset;
         offset += requests[i].size;
     }
@@ -88,7 +90,7 @@ typedef struct {
 } StackArena;
 
 static inline
-StackArena stack_arena_generate(void* const buffer, size_t const capacity) {
+StackArena stack_arena_generate(void* const buffer, anansi_size_t const capacity) {
     StackArena arena = {0};
     arena.capacity = capacity;
     arena.data = buffer;
@@ -96,12 +98,12 @@ StackArena stack_arena_generate(void* const buffer, size_t const capacity) {
 }
 
 static inline
-void* stack_arena_alloc(StackArena* const arena, size_t const size, size_t const alignment) {
+void* stack_arena_alloc(StackArena* const arena, anansi_size_t const size, anansi_size_t const alignment) {
     // .data is not assumed to be aligned, so math is done on the pointer, not offset
     if (arena->used >= arena->capacity)
         return NULL;
-    size_t const current_end_ptr = (size_t)arena->data + (size_t)arena->used;
-    size_t const new_beginning_offset = round_to_alignment(current_end_ptr, alignment) - ((size_t)arena->data);
+    anansi_size_t const current_end_ptr = (anansi_size_t)arena->data + (anansi_size_t)arena->used;
+    anansi_size_t const new_beginning_offset = round_to_alignment(current_end_ptr, alignment) - ((anansi_size_t)arena->data);
     arena->used = new_beginning_offset + size;
     return (uint8_t*)arena->data + new_beginning_offset;
 }
@@ -137,12 +139,12 @@ typedef struct {
  * if .data is 0, error occured.
  */
 static inline
-ObjectArena object_arena_generate(size_t const object_size, size_t const object_count, StackArena* const arena) {
+ObjectArena object_arena_generate(anansi_size_t const object_size, anansi_size_t const object_count, StackArena* const arena) {
     ObjectArena output = {0};
     output.capacity    = object_count;
     output.object_size = object_size;
     output.free_list   = (count_t*)stack_arena_alloc(arena, output.capacity*sizeof(count_t), alignof(void*));
-    output.data        = stack_arena_alloc(arena, output.capacity*object_size, alignof(size_t));
+    output.data        = stack_arena_alloc(arena, output.capacity*object_size, alignof(anansi_size_t));
 
     return output;
 }
@@ -191,7 +193,7 @@ typedef struct {
  * m .. object_size
  */
 static inline
-Set set_generate(size_t const object_size, size_t const capacity, StackArena* const arena) {
+Set set_generate(anansi_size_t const object_size, anansi_size_t const capacity, StackArena* const arena) {
     Set set = { 0 };
     set.offsets = (count_t*)stack_arena_alloc(arena, capacity*sizeof(*set.offsets), sizeof(*set.offsets));
     set.arena = object_arena_generate(object_size, capacity, arena);
@@ -213,14 +215,14 @@ int set_add(Set* const set, void const* const object) {
 }
 
 static inline
-void* set_at(Set const* const set, size_t const i) {
+void* set_at(Set const* const set, anansi_size_t const i) {
     if (i >= set->arena.capacity)
         return NULL;
     return ((char*)set->arena.data) + (set->offsets[i]*set->arena.object_size);
 }
 
 static inline
-void set_remove(Set* const set, size_t const i) {
+void set_remove(Set* const set, anansi_size_t const i) {
     if (i <= set->arena.capacity)
         return;
     void const* const removed_element = set_at(set, i);
@@ -235,7 +237,7 @@ void set_empty(Set* const set) {
 }
 
 // for-loop over every element in set
-#define set_foreach(set, i) for(size_t i=0; i<(set).arena.count; i++)
+#define set_foreach(set, i) for(anansi_size_t i=0; i<(set).arena.count; i++)
 
 
 
@@ -270,9 +272,9 @@ typedef ARRAY_OF(void) TGArray;
  */
 static inline
 TGArray _array_generate(
-    size_t      const capacity,
-    size_t      const object_size,
-    size_t      const alignment,
+    anansi_size_t      const capacity,
+    anansi_size_t      const object_size,
+    anansi_size_t      const alignment,
     StackArena* const allocator) {
     return (TGArray) {
         .len      = (count_t)0,
@@ -315,4 +317,6 @@ TGArray _ARRAY_UNIQUE_NAME = { 0 };
 
 #ifdef ANANSI_STRING
 #include "./string.h"
+#endif
+
 #endif
