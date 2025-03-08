@@ -54,12 +54,12 @@ anansi_size_t round_to_alignment(anansi_size_t const pointer, anansi_size_t cons
     return pointer + (alignment - (pointer%alignment));
 }
 
+#ifdef ANANSI_MALLOC
 typedef struct {
     void** ptr;
     anansi_size_t size;
 } AllocRequest;
 
-#ifdef ANANSI_MALLOC
 #include <stdlib.h>
 // allocates memory for all requests in one chunk
 // element after last should be zero-init'd
