@@ -18,6 +18,8 @@ Each structure has it's own set of functions for init/creation and mutation pref
 Every structure has a `generate` function for creating a new structure and a `empty` for emptying out the structure.
 Most have a `free` function for freeing invidivual elements of a arena.
 
+Some macros for type-safe and convenient creation are also included.
+
 There are no destructors (`malloc_`* are a special case).
 There are no getters and setters.
 There are no implementation files in the base library.
